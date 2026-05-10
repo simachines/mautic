@@ -77,6 +77,7 @@ class FieldType extends AbstractType
             [
                 'choices' => [
                     'mautic.lead.field.group.core'         => 'core',
+                    'mautic.lead.field.group.hidden'       => LeadField::GROUP_HIDDEN,
                     'mautic.lead.field.group.social'       => 'social',
                     'mautic.lead.field.group.personal'     => 'personal',
                     'mautic.lead.field.group.professional' => 'professional',
@@ -236,7 +237,7 @@ class FieldType extends AbstractType
          * Used as as form modifier before trying to set data
          */
         $formModifier = function (FormEvent $event) use ($listChoices, $type, $options, $disableDefaultValue): array {
-            $cleaningRules = [];
+            $cleaningRules = ['defaultValue' => 'raw'];
             $form          = $event->getForm();
             $data          = $event->getData();
             $type          = (is_array($data)) ? ($data['type'] ?? $type) : $data->getType();
@@ -248,8 +249,6 @@ class FieldType extends AbstractType
                     $constraints = new Assert\Callback([$this, 'validateDefaultValue']);
                     // no break
                 case 'multiselect':
-                    $cleaningRules['defaultValue'] = 'raw';
-
                     if (is_array($data)) {
                         $properties = $data['properties'] ?? [];
                     } else {
