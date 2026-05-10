@@ -145,6 +145,42 @@ class FieldFunctionalTest extends MauticMysqlTestCase
         Assert::assertStringContainsString('Edit Custom Field - Test select field', $text);
     }
 
+    public function testTextFieldDefaultValueWithApostropheSurvivesResave(): void
+    {
+        $defaultValue = "Owner's choice";
+        $alias        = 'owners_choice_field';
+
+        $crawler = $this->client->request(Request::METHOD_GET, 's/contacts/fields/new');
+
+        Assert::assertTrue($this->client->getResponse()->isOk(), $this->client->getResponse()->getContent());
+
+        $form = $crawler->selectButton('Save')->form();
+        $form['leadfield[label]']->setValue('Owners Choice Field');
+        $form['leadfield[alias]']->setValue($alias);
+        $form['leadfield[type]']->setValue('text');
+        $form['leadfield[defaultValue]']->setValue($defaultValue);
+
+        $this->client->submit($form);
+
+        $text = strip_tags($this->client->getResponse()->getContent());
+        Assert::assertTrue($this->client->getResponse()->isOk(), $text);
+        Assert::assertStringContainsString('Edit Custom Field - Owners Choice Field', $text);
+
+        /** @var LeadField $field */
+        $field = static::getContainer()->get('doctrine')->getRepository(LeadField::class)->findOneBy(['alias' => $alias]);
+        Assert::assertNotNull($field);
+        Assert::assertSame($defaultValue, $field->getDefaultValue());
+
+        $crawler = $this->client->request(Request::METHOD_GET, '/s/contacts/fields/edit/'.$field->getId());
+        Assert::assertTrue($this->client->getResponse()->isOk(), $this->client->getResponse()->getContent());
+
+        $form = $crawler->selectButton('Save')->form();
+        $this->client->submit($form);
+
+        $this->em->refresh($field);
+        Assert::assertSame($defaultValue, $field->getDefaultValue());
+    }
+
     /**
      * @param array<string, string> $properties
      */
